@@ -1,4 +1,4 @@
-package dev.stardust.gui.widgets;
+package dev.stardust.gui.widgets.minesweeper;
 
 import java.util.Deque;
 import java.util.Random;
@@ -119,10 +119,12 @@ public class WMinesweeper extends WWidget {
         while (placed < mines) {
             int r = random.nextInt(rows);
             int c = random.nextInt(cols);
-            if ((r == exX && c == exY) || grid[r][c] == -1) continue;
 
-            grid[r][c] = -1;
+            if (grid[r][c] == -1) continue;
+            if (Math.abs(r - exX) <= 1 && Math.abs(c - exY) <= 1) continue; // ignore 3x3 centered on clicked cell
+
             placed++;
+            grid[r][c] = -1;
 
             for (int dr = -1; dr <= 1; dr++) {
                 for (int dc = -1; dc <= 1; dc++) {
@@ -142,9 +144,8 @@ public class WMinesweeper extends WWidget {
         if (!inBounds(r, c) || state[r][c] == 1 || state[r][c] == 2 || gameOver) return;
 
         if (firstClick) {
-            // Lazy-place mines to guarantee the first click is safe
-            placeMines(r, c);
             firstClick = false;
+            placeMines(r, c);
         }
 
         if (grid[r][c] == -1) {

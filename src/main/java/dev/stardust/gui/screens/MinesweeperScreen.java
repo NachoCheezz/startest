@@ -2,10 +2,10 @@ package dev.stardust.gui.screens;
 
 import dev.stardust.modules.Minesweeper;
 import org.jetbrains.annotations.Nullable;
-import dev.stardust.gui.widgets.WMinesweeper;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.utils.Cell;
 import meteordevelopment.meteorclient.gui.WindowScreen;
+import dev.stardust.gui.widgets.minesweeper.WMinesweeper;
 import meteordevelopment.meteorclient.gui.widgets.WWidget;
 
 /**
