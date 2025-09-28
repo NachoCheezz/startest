@@ -1,11 +1,8 @@
 package dev.stardust.gui.widgets.minesweeper;
 
-import java.util.Deque;
-import java.util.Random;
-import java.util.ArrayDeque;
+import java.util.*;
 import net.minecraft.sound.SoundEvents;
 import dev.stardust.modules.Minesweeper;
-import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.ThreadLocalRandom;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.widgets.WWidget;
@@ -40,8 +37,8 @@ public class WMinesweeper extends WWidget {
     private boolean dragging;
     private int clickedMouseX;
     private int clickedMouseY;
-    private int @Nullable [] hoveredCell = null;
-    private int @Nullable [] highlightedCell = null;
+    private final List<int[]> hoveredCells = new ArrayList<>();
+    private final List<int[]> highlightedCells = new ArrayList<>();
 
     private int[][] grid;
     private byte[][] state;
@@ -361,7 +358,7 @@ public class WMinesweeper extends WWidget {
         dragging = true;
         clickedMouseX = boardLocalX;
         clickedMouseY = boardLocalY;
-        highlightedCell = new int[] {r, c};
+        highlightedCells.add(new int[] {r, c});
 
         return true;
     }
@@ -382,24 +379,51 @@ public class WMinesweeper extends WWidget {
         resetHover = (localX >= resetX && localX <= resetX + resetW && localY >= resetY && localY <= resetY + resetH);
 
         if (!dragging) {
+            hoveredCells.clear();
             int boardLocalX = (int) localX;
             int boardLocalY = (int) (localY - statusHeight);
 
             int c = boardLocalX / cellSize;
             int r = boardLocalY / cellSize;
-            if (r < 0 || c < 0 || r >= rows || c >= cols) {
-                hoveredCell = null;
-                return;
-            }
+            if (r < 0 || c < 0 || r >= rows || c >= cols) return;
 
-            hoveredCell = new int[] {r, c};
+            if (state[r][c] == 0) {
+                hoveredCells.add(new int[] {r, c});
+            } else if (state[r][c] == 1) {
+                // check for chording eligibility
+                int flags = 0;
+                int amt = grid[r][c];
+                for (int dr = -1; dr <= 1; dr++) {
+                    for (int dc = -1; dc <= 1; dc++) {
+                        if (dr == 0 && dc == 0) continue;
+
+                        int nr = r + dr, nc = c + dc;
+                        if (inBounds(nr, nc) && state[nr][nc] == 2) {
+                            flags++;
+                        }
+                    }
+                }
+
+                if (flags > 0 && flags == amt) {
+                    for (int dr = -1; dr <= 1; dr++) {
+                        for (int dc = -1; dc <= 1; dc++) {
+                            if (dr == 0 && dc == 0) continue;
+
+                            int nr = r + dr, nc = c + dc;
+                            if (inBounds(nr, nc) && state[nr][nc] == 0) {
+                                hoveredCells.add(new int[] {nr, nc});
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
     @Override
     public boolean onMouseReleased(double mouseX, double mouseY, int button) {
         dragging = false;
-        highlightedCell = null;
+        highlightedCells.clear();
         double localX = mouseX - x;
         double localY = mouseY - y;
         int boardLocalX = (int) localX;
@@ -477,15 +501,15 @@ public class WMinesweeper extends WWidget {
                 byte s = state[r][c];
                 if (s == 0) { // hidden
                     Color hiddenCellColor = colorScheme.hiddenCellColor;
-                    if (dragging && highlightedCell != null && highlightedCell[0] == r && highlightedCell[1] == c) {
-                        int cr = Math.min(255, colorScheme.hiddenCellColor.r + 37);
-                        int cg = Math.min(255, colorScheme.hiddenCellColor.g + 37);
-                        int cb = Math.min(255, colorScheme.hiddenCellColor.b + 37);
+                    if (dragging && isHighlightedCell(r, c)) {
+                        int cr = Math.min(255, hiddenCellColor.r + 50);
+                        int cg = Math.min(255, hiddenCellColor.g + 50);
+                        int cb = Math.min(255, hiddenCellColor.b + 50);
                         hiddenCellColor = new Color(cr, cg, cb, colorScheme.hiddenCellColor.a);
-                    } else if (!dragging && hoveredCell != null && hoveredCell[0] == r && hoveredCell[1] == c) {
-                        int cr = Math.min(255, colorScheme.hiddenCellColor.r + 13);
-                        int cg = Math.min(255, colorScheme.hiddenCellColor.g + 13);
-                        int cb = Math.min(255, colorScheme.hiddenCellColor.b + 13);
+                    } else if (!dragging && isHoveredCell(r, c)) {
+                        int cr = Math.min(255, hiddenCellColor.r + 25);
+                        int cg = Math.min(255, hiddenCellColor.g + 25);
+                        int cb = Math.min(255, hiddenCellColor.b + 25);
                         hiddenCellColor = new Color(cr, cg, cb, colorScheme.hiddenCellColor.a);
                     }
 
@@ -558,6 +582,22 @@ public class WMinesweeper extends WWidget {
         int flags = 0;
         for (int r = 0; r < rows; r++) for (int c = 0; c < cols; c++) if (state[r][c] == 2) flags++;
         return flags;
+    }
+
+    private boolean isHoveredCell(int r, int c) {
+        for (int[] cell : hoveredCells) {
+            if (r == cell[0] && c == cell[1]) return true;
+        }
+
+        return false;
+    }
+
+    private boolean isHighlightedCell(int r, int c) {
+        for (int[] cell : highlightedCells) {
+            if (r == cell[0] && c == cell[1]) return true;
+        }
+
+        return false;
     }
 
     public enum Difficulty {
