@@ -4,6 +4,7 @@ import xaero.common.HudMod;
 import xaero.common.misc.Misc;
 import xaero.common.effect.Effects;
 import xaero.common.gui.IScreenBase;
+import dev.stardust.modules.Solitaire;
 import dev.stardust.modules.Meteorites;
 import dev.stardust.modules.Minesweeper;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Unique;
 import net.minecraft.client.gui.DrawContext;
 import xaero.hud.minimap.module.MinimapSession;
+import dev.stardust.gui.screens.SolitaireScreen;
 import org.spongepowered.asm.mixin.injection.At;
 import xaero.hud.minimap.module.MinimapRenderer;
 import dev.stardust.gui.screens.MeteoritesScreen;
@@ -31,6 +33,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = MinimapRenderer.class, remap = false)
 public class MinimapRendererMixin {
     @Unique
+    private @Nullable Solitaire solitaire = null;
+
+    @Unique
     private @Nullable Meteorites meteorites = null;
 
     @Unique
@@ -43,13 +48,14 @@ public class MinimapRendererMixin {
     private void forceRenderMinimapDuringMinigames(MinimapSession session, ModuleRenderContext c, DrawContext guiGraphics, float partialTicks, CallbackInfo ci) {
         if (mc == null) return;
         if (Misc.hasEffect(mc.player, Effects.NO_MINIMAP) && Misc.hasEffect(mc.player, Effects.NO_MINIMAP_HARMFUL)) return;
-        if (meteorites == null || minesweeper == null) {
+        if (meteorites == null || minesweeper == null || solitaire == null) {
             Modules mods = Modules.get();
             if (mods == null) return;
 
+            solitaire = mods.get(Solitaire.class);
             meteorites = mods.get(Meteorites.class);
             minesweeper = mods.get(Minesweeper.class);
-            if (meteorites == null || minesweeper == null) return;
+            if (meteorites == null || minesweeper == null || solitaire == null) return;
         }
 
         boolean allowedByDefault = (!session.getHideMinimapUnderF3() || !mc.getDebugHud().shouldShowDebugHud())
@@ -58,6 +64,7 @@ public class MinimapRendererMixin {
 
         if (allowedByDefault) return;
         boolean force = mc.currentScreen instanceof MeteoritesScreen && meteorites.renderMap.get();
+        if (mc.currentScreen instanceof SolitaireScreen && solitaire.renderMap.get()) force = true;
         if (mc.currentScreen instanceof MinesweeperScreen && minesweeper.renderMap.get()) force = true;
 
         if (force) {

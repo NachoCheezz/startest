@@ -56,6 +56,7 @@ public class Stardust extends MeteorAddon {
         Modules.get().add(new BookTools());
         Modules.get().add(new ChatSigns());
         Modules.get().add(new RapidFire());
+        Modules.get().add(new Solitaire());
         Modules.get().add(new RocketMan());
         Modules.get().add(new RocketJump());
         Modules.get().add(new BannerData());
