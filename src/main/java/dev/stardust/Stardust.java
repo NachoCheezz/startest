@@ -81,6 +81,7 @@ public class Stardust extends MeteorAddon {
         GuiThemes.add(LambdaTheme.INSTANCE);
         GuiThemes.add(StardustTheme.INSTANCE);
         GuiThemes.add(MidnightTheme.INSTANCE);
+        GuiThemes.add(PhosphorTheme.INSTANCE);
         GuiThemes.add(MonochromeTheme.INSTANCE);
 
         packetManager = new PacketManager();
