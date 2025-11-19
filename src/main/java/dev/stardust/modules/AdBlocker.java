@@ -56,6 +56,7 @@ public class AdBlocker extends Module {
         if (packet.content() == null) return;
         String content = packet.content().getString();
         for (String pattern : patterns.get()) {
+            if (pattern.isBlank()) continue;
             if (content.toLowerCase().contains(pattern.toLowerCase())) {
                 event.cancel(); // fuck yo packets
                 if (!ignoreStyle.get().equals(IgnoreStyle.None)) {
