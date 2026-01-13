@@ -2,8 +2,8 @@ package dev.stardust.mixin.xaero;
 
 import xaero.common.HudMod;
 import xaero.common.misc.Misc;
+import dev.stardust.util.LogUtil;
 import xaero.common.effect.Effects;
-import xaero.common.gui.IScreenBase;
 import dev.stardust.modules.Solitaire;
 import dev.stardust.modules.Meteorites;
 import dev.stardust.modules.Minesweeper;
@@ -41,12 +41,16 @@ public class MinimapRendererMixin {
     @Unique
     private @Nullable Minesweeper minesweeper = null;
 
+    @Unique
+    private static volatile Class<?> ISCREENBASE_CLASS_HANDLE = null;
+
     @Inject(
         method = "render(Lxaero/hud/minimap/module/MinimapSession;Lxaero/hud/render/module/ModuleRenderContext;Lnet/minecraft/client/gui/DrawContext;F)V",
         at = @At("HEAD"), cancellable = true, remap = true
     )
     private void forceRenderMinimapDuringMinigames(MinimapSession session, ModuleRenderContext c, DrawContext guiGraphics, float partialTicks, CallbackInfo ci) {
         if (mc == null) return;
+        if (session.getProcessor().getNoMinimapMessageReceived()) return;
         if (Misc.hasEffect(mc.player, Effects.NO_MINIMAP) && Misc.hasEffect(mc.player, Effects.NO_MINIMAP_HARMFUL)) return;
         if (meteorites == null || minesweeper == null || solitaire == null) {
             Modules mods = Modules.get();
@@ -59,7 +63,7 @@ public class MinimapRendererMixin {
         }
 
         boolean allowedByDefault = (!session.getHideMinimapUnderF3() || !mc.getDebugHud().shouldShowDebugHud())
-            && (!session.getHideMinimapUnderScreen() || mc.currentScreen == null || mc.currentScreen instanceof IScreenBase
+            && (!session.getHideMinimapUnderScreen() || mc.currentScreen == null || isIScreenBaseInstance(mc.currentScreen)
             || mc.currentScreen instanceof ChatScreen || mc.currentScreen instanceof DeathScreen);
 
         if (allowedByDefault) return;
@@ -77,5 +81,36 @@ public class MinimapRendererMixin {
             );
             MinimapRendererHelper.restoreDefaultShaderBlendState();
         }
+    }
+
+    @Unique
+    private static boolean isIScreenBaseInstance(Object screen) {
+        if (screen == null) return false;
+        Class<?> clazz = getIScreenBase();
+        return clazz != null && clazz.isInstance(screen);
+    }
+
+    @Unique
+    private static Class<?> getIScreenBase() {
+        Class<?> cached = ISCREENBASE_CLASS_HANDLE;
+        if (cached != null) return cached;
+
+        String[] paths = {
+            "xaero.common.gui.IScreenBase",
+            "xaero.lib.client.gui.IScreenBase"
+        };
+
+        for (String name : paths) {
+            try {
+                Class<?> loaded = Class.forName(name, false, MinimapRendererMixin.class.getClassLoader());
+
+                ISCREENBASE_CLASS_HANDLE = loaded;
+                LogUtil.warn("Reflection attempt for " + name + " succeeded..!");
+
+                return loaded;
+            } catch (ClassNotFoundException ignored) {}
+        }
+
+        return null;
     }
 }
